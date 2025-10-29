@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ktabs Generator</title>
+  <style>
+    :root{--p:#007bff;--s:#6c757d;--ok:#28a745;--no:#dc3545;--bg:#f8f9fa;--t:#333;--r:8px;--sh:0 2px 10px rgba(0,0,0,.1)}
+    body{font-family:system-ui;margin:0;padding:20px;background:var(--bg);color:var(--t);line-height:1.6}
+    .c{max-width:1200px;margin:auto;display:grid;grid-template-columns:1fr 1fr;gap:40px}
+    h1{grid-column:1/3;text-align:center;color:var(--p)}
+    .s{background:#fff;padding:30px;border-radius:var(--r);box-shadow:var(--sh)}
+    .i{display:flex;flex-direction:column;gap:20px}
+    label{font-weight:bold;margin-bottom:5px}
+    input,textarea,select{padding:12px;border:1px solid #ddd;border-radius:var(--r);font-size:16px}
+    textarea{resize:vertical;min-height:100px}
+    .up{border:2px dashed #ddd;padding:40px;text-align:center;cursor:pointer;transition:.3s}
+    .up:hover,.up.d{border-color:var(--p);background:#f0f8ff}
+    .prev{position:relative;height:300px;background:#eee;border-radius:var(--r);overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .prev img{max-width:100%;max-height:100%;object-fit:contain}
+    .kb{position:absolute;top:20px;right:20px;background:var(--p);color:#fff;border:none;width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:20px;box-shadow:var(--sh);transition:.2s}
+    .kb:hover{transform:scale(1.1)}
+    .pop{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:30px;border-radius:var(--r);box-shadow:0 4px 20px rgba(0,0,0,.3);z-index:1000;max-width:400px;max-height:80vh;overflow-y:auto}
+    .pop.a{display:block;animation:f .3s}
+    @keyframes f{from{opacity:0;transform:translate(-50%,-60%)}to{opacity:1;transform:translate(-50%,-50%)}}
+    .o{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999}
+    .o.a{display:block}
+    .tb{display:flex;margin-bottom:20px;border-bottom:1px solid #ddd}
+    .tbb{padding:10px 20px;background:none;border:none;cursor:pointer}
+    .tbb.a{border-bottom:2px solid var(--p);color:var(--p)}
+    .tc{display:none}
+    .tc.a{display:block}
+    .code{background:#f8f9fa;padding:20px;border-radius:var(--r);font-family:monospace;white-space:pre-wrap;overflow-x:auto}
+    button{background:var(--p);color:#fff;border:none;padding:12px 24px;border-radius:var(--r);cursor:pointer;font-size:16px;transition:.3s}
+    button:hover{background:#0056b3}
+    button.ok{background:var(--ok)}
+    button.no{background:var(--no)}
+    .e{color:var(--no);font-size:14px;margin-top:5px}
+    .m{color:var(--ok);margin-top:10px}
+    @media(max-width:768px){.c{grid-template-columns:1fr;gap:20px}}
+  </style>
+</head>
+<body>
+<div class="c">
+  <h1>ktabs Generator</h1>
+  <div class="s">
+    <h2>Build</h2>
+    <div class="i">
+      <div>
+        <label>Image (drag & drop)</label>
+        <div id="up" class="up"><p>Choose or paste URL</p><input type="file" id="iu" accept="image/*" style="display:none"></div>
+        <input type="url" id="iurl" placeholder="Or paste image URL…" style="margin-top:10px">
+        <div id="err" class="e"></div>
+      </div>
+      <div><label>Overlay Text</label><input type="text" id="ot" placeholder="e.g., 'Click the k!'"></div>
+      <div>
+        <label>Popup Style</label>
+        <select id="pos">
+          <option value="top:20px;right:20px">Top-Right</option>
+          <option value="bottom:20px;right:20px">Bottom-Right</option>
+          <option value="top:50%;left:50%;transform:translate(-50%,-50%)">Center</option>
+        </select>
+        <input type="color" id="bg" value="#ffffff">
+      </div>
+      <div id="ts" style="display:none">
+        <h3>Tabs</h3>
+        <button id="at">+ Add Tab</button>
+        <div id="tc"></div>
+      </div>
+      <button id="gen">Generate Code</button>
+    </div>
+  </div>
+  <div class="s">
+    <h2>Preview</h2>
+    <div class="prev" id="pr"><p>No image yet</p><button class="kb" id="pb" style="display:none">k</button></div>
+    <div id="po" class="o"></div>
+    <div id="pp" class="pop"><h3 id="pt">Info</h3><div id="pc"></div><button id="cp" class="no" style="float:right">Close</button></div>
+  </div>
+</div>
+<div class="s" id="cs" style="display:none;margin-top:40px;grid-column:1/3">
+  <h2>Embed Code</h2>
+  <pre id="gc" class="code"></pre>
+  <button id="cc" class="ok">Copy</button>
+  <div id="cm" class="m" style="display:none">Copied!</div>
+</div>
+
+<script>
+let img=null,tabs=[{title:'What is it?',content:'Explain in plain English.'}],cnt=1;
+const up=document.getElementById('up'),iu=document.getElementById('iu'),iurl=document.getElementById('iurl'),pr=document.getElementById('pr'),pb=document.getElementById('pb'),pp=document.getElementById('pp'),po=document.getElementById('po'),pc=document.getElementById('pc'),pt=document.getElementById('pt');
+['dragenter','dragover','dragleave','drop'].forEach(e=>up.addEventListener(e,ev=>{ev.preventDefault();ev.stopPropagation();}));
+['dragenter','dragover'].forEach(e=>up.addEventListener(e,()=>up.classList.add('d')));
+['dragleave','drop'].forEach(e=>up.addEventListener(e,()=>up.classList.remove('d')));
+up.addEventListener('drop',e=>h(e.dataTransfer.files[0]));
+iu.addEventListener('change',e=>h(e.target.files[0]));
+iurl.addEventListener('input',e=>{if(e.target.value){img=e.target.value;upr();}});
+function h(f){if(f&&f.type.startsWith('image/')){const r=new FileReader();r.onload=e=>{img=e.target.result;upr();};r.readAsDataURL(f);document.getElementById('err').textContent='';}else{document.getElementById('err').textContent='Invalid image.';}}
+function upr(){if(!img)return;const i=new Image();i.src=img;pr.innerHTML='';pr.appendChild(i);pb.style.display='block';document.getElementById('ts').style.display='block';const o=document.getElementById('ot').value;if(o){const t=document.createElement('div');t.textContent=o;t.style.position='absolute';t.style.bottom='20px';t.style.left='20px';t.style.background='rgba(0,0,0,.7)';t.style.color='#fff';t.style.padding='10px';t.style.borderRadius='4px';pr.appendChild(t);}}
+document.getElementById('at').addEventListener('click',()=>{cnt++;const d=document.createElement('div');d.innerHTML=`<input class="tt" placeholder="Title" value="Tab ${cnt}"><textarea placeholder="Content…"></textarea><button class="no" onclick="this.parentElement.remove();upv()">Remove</button>`;document.getElementById('tc').appendChild(d);tabs.push({title:`Tab ${cnt}`,content:''});upv();});
+function ct(){tabs=[];document.querySelectorAll('#tc > div').forEach(d=>{const t=d.querySelector('.tt').value.trim(),c=d.querySelector('textarea').value.trim();if(t&&c)tabs.push({title:t,content:c});});if(!tabs.length)tabs.push({title:'Info',content:'Add details.'});}
+function upv(){ct();pt.textContent=tabs[0].title;pc.innerHTML=`<div class="tb">${tabs.map((t,i)=>`<button class="tbb ${i===0?'a':''}" data-t="${i}">${t.title}</button>`).join('')}</div><div class="tbc">${tabs.map((t,i)=>`<div class="tc ${i===0?'a':''}" data-t="${i}">${t.content.replace(/\n/g,'<br>')}</div>`).join('')}</div>`;}
+document.getElementById('ot').addEventListener('input',upr);
+document.querySelectorAll('input,textarea,select').forEach(el=>el.addEventListener('input',upv));
+pb.onclick=()=>{upv();pp.classList.add('a');po.classList.add('a');};
+document.getElementById('cp').onclick=cl;po.onclick=cl;
+function cl(){pp.classList.remove('a');po.classList.remove('a');}
+pc.onclick=e=>{if(e.target.classList.contains('tbb')){const i=+e.target.dataset.t;pc.querySelectorAll('.tbb').forEach(b=>b.classList.remove('a'));pc.querySelectorAll('.tc').forEach(c=>c.classList.remove('a'));e.target.classList.add('a');pc.querySelector(`.tc[data-t="${i}"]`).classList.add('a');pt.textContent=tabs[i].title;}};
+document.getElementById('gen').onclick=()=>{
+  if(!img){alert('Upload image!');return;}
+  ct();
+  const p=document.getElementById('pos').value,b=document.getElementById('bg').value,o=document.getElementById('ot').value;
+  const code=`<!-- ktabs --><div id="k-c" style="position:relative;display:inline-block;"><img src="${img}" style="max-width:100%">${o?`<div style="position:absolute;bottom:20px;left:20px;background:rgba(0,0,0,.7);color:#fff;padding:10px;border-radius:4px">${o}</div>`:''}<button id="k-b" style="position:absolute;${p};background:#007bff;color:#fff;border:none;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.1)" aria-label="Info">k</button></div><div id="k-p" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:${b};padding:30px;border-radius:8px;max-width:400px;max-height:80vh;overflow-y:auto;z-index:1000"><h3 id="k-t">${tabs[0].title}</h3><div id="k-co"><div class="k-tb">${tabs.map((t,i)=>`<button class="k-tbb ${i===0?'a':''}" data-t="${i}">${t.title}</button>`).join('')}</div><div class="k-tc">${tabs.map((t,i)=>`<div class="k-tcc ${i===0?'a':''}" data-t="${i}">${t.content.replace(/\n/g,'<br>')}</div>`).join('')}</div></div><button id="k-cl" style="float:right;background:#dc3545;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer">Close</button></div><div id="k-o" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999"></div><style>.k-p{animation:f .3s}@keyframes f{from{opacity:0;transform:translate(-50%,-60%)}to{opacity:1;transform:translate(-50%,-50%)}}
+.k-tb{display:flex;margin-bottom:20px;border-bottom:1px solid #ddd}
+.k-tbb{padding:10px 20px;background:none;border:none;cursor:pointer}
+.k-tbb.a{border-bottom:2px solid #007bff;color:#007bff}
+.k-tcc{display:none}
+.k-tcc.a{display:block}
+#k-b:hover{transform:scale(1.1)}</style><script>document.addEventListener('DOMContentLoaded',()=>{const d=${JSON.stringify(tabs)};const b=document.getElementById('k-b'),p=document.getElementById('k-p'),o=document.getElementById('k-o'),c=document.getElementById('k-cl'),t=document.getElementById('k-t'),co=document.getElementById('k-co');b.onclick=()=>{p.style.display='block';o.style.display='block';s(0);};c.onclick=o.onclick=()=>{p.style.display='none';o.style.display='none';};function s(i){co.querySelectorAll('.k-tbb').forEach(bb=>bb.classList.remove('a'));co.querySelectorAll('.k-tcc').forEach(cc=>cc.classList.remove('a'));co.querySelector('[data-t="'+i+'"]').classList.add('a');t.textContent=d[i].title;co.querySelector('.k-tcc[data-t="'+i+'"]').classList.add('a');}co.addEventListener('click',e=>{if(e.target.classList.contains('k-tbb'))s(+e.target.dataset.t);});});</script><!-- end -->`;
+  document.getElementById('gc').textContent=code;
+  document.getElementById('cs').style.display='block';
+  document.getElementById('cs').scrollIntoView({behavior:'smooth'});
+};
+document.getElementById('cc').onclick=()=>{navigator.clipboard.writeText(document.getElementById('gc').textContent).then(()=>{const m=document.getElementById('cm');m.style.display='block';setTimeout(()=>m.style.display='none',2000);});};
+</script>
+</body>
+</html>
